@@ -1,0 +1,28 @@
+<section class = "panel banner right color4" >
+    <div class = "span-3-55" >
+        <h2 >
+        <a href = "/user?id={{user_id}}">
+          {%if avatar%}
+          <img width="48px" height="48px" src = "static/images/{{avatar}}" style="border-radius: 50%; border: solid 1px black;margin-right:25px;">
+          {%else%}
+           <img width="48px" height="48px" src = "static/images/default_avatar.png"
+            style="border-radius: 50%; border: solid 1px black;margin-right:25px;">
+          {%end%} </a >
+      <a href = "/user?id={{user_id}}" class = "color0" >
+        {{name}} </a> </h2 >
+        <h1 class = "major" > 评论
+        </h1 >
+        <p style="color: black;font-size: 20px; font-weight:bolder">
+          {%raw content%}
+        </p>
+            <script type="text/javascript">
+
+            </script>
+            <input type = "button" name = "button"
+            style = "float:right;" id = "cpl{{comment_id}}"
+             class = "button special color1"
+             onclick = "complain('{{comment_id}}')"
+             value="举报"
+             >
+    </div >
+</section >

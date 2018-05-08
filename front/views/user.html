@@ -1,0 +1,230 @@
+{%extends base.html%}
+{%block title%}铭阅欢迎 {{name}} {%end%}
+{%block head%}
+<script type="text/javascript"
+ src="{{static_url('js/jquery-3.2.1.js')}}"></script>
+
+<script type="text/javascript">
+    function getQueryString(name) {
+    var reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)", "i");
+    var r = window.location.search.substr(1).match(reg);
+    if (r != null) return unescape(r[2]); return null;
+    }
+    $(function () {
+        $("#searchcol").click(function () {
+          var div_index_wrapper = $('#wrapper');
+            $.ajax({
+               url:"/books",
+                data:{"w":'','opt':'0','id':"{{user_id}}"},
+                type:"get",
+                datatype:"json",
+                async:true,
+                success:function (data) {
+                    console.log('success:');
+                    div_index_wrapper.html(data['booksHtml']);
+                },
+                error:function (err) {
+                    console.log('error:'+err);
+                }
+            });
+        });
+
+    });
+    function showActivities() {
+        var div_index_wrapper = $('#wrapper');
+        $.ajax({
+           url:"/blogs",
+            data:{"id":"{{user_id}}"},
+            type:"get",
+            datatype:"json",
+            async:true,
+            success:function (data) {
+                console.log('success:');
+                div_index_wrapper.html(data['blogsHtml']);
+            },
+            error:function (err) {
+                console.log('error:'+err);
+            }
+        });
+    }
+    function delBlog(blog_id, user_id) {
+      if (confirm('确实要删除该篇文章?')){
+          $.ajax({
+             url:"/delblog",
+              data:{"blog_id": blog_id, "user_id": user_id},
+              type:"post",
+              datatype:"json",
+              async:true,
+              success:function (data) {
+                  if (data['success']){
+                    alert("删除成功！");
+                    showActivities();
+                  }else{
+                    alert("删除失败！");
+                  }
+
+              },
+              error:function (err) {
+                  console.log('error:'+err);
+              }
+          });
+      }
+    }
+    function checkcol(ISBN){
+      $.ajax({
+        url:"/check",
+        data:{"ISBN":ISBN, "type":"col"},
+        type:"post",
+        datatype:"json",
+        async:true,
+        success:function (data){
+          btn = $("#col"+ISBN);
+          if (data['islogin'])
+            if (data['iscol']){
+              btn.val('取消收藏');
+            }
+        },
+        error:function (err) {
+            console.log('error:'+err);
+        }
+      });
+    }
+    function colBook(ISBN){
+      btn = $("#col"+ISBN);
+      $.ajax({
+        url:"/colbook",
+        data:{"ISBN":ISBN, "action": btn.val()},
+        type:"post",
+        datatype:"json",
+        async:true,
+        success:function (data){
+          if (data['islogin'])
+            if (data['iscol']){
+              btn.val('取消收藏');
+              alert('已收藏！');
+            }else{
+              btn.val('收藏本书');
+              alert('已取消收藏！');
+            }
+          else {
+            location.href='/login';
+          }
+        },
+        error:function (err) {
+            console.log('error:'+err);
+        }
+      });
+    }
+    function focuser(){
+      var btn = $('#foc');
+      $.ajax({
+        url: '/user',
+        data: {'user_id': "{{user_id}}"},
+        type: 'post',
+        datatype: 'json',
+        async: true,
+        success: function(data){
+          if (data['islogin']){
+            if (data['success']){
+              btn.val('已关注');
+              btn.attr('disabled', 'true');
+            }
+          }
+          else{
+            location.href = '/login';
+          }
+        },
+        error: function(err){
+          console.log('error:'+err);
+        }
+      });
+    }
+</script>
+
+
+{%end%}
+	{%block body%}
+  {%if islogin%}
+  {%module umodule()%}
+  {%end%}
+		<div style="margin-left: 100px;" class="color0">
+
+			 <div style="font-size:20px;color:black;width:250px; overflow: hidden;text-overflow: ellipsis;" class="color0">
+				 <a href="/user?id={{user_id}}" sytle="float:left">
+					 {%if avatar%}
+					 <img width="64px" height="64px"
+						src = "static/images/{{avatar}}"
+						style="border-radius: 50%; border: solid 1px black;float:left;margin-right:25px;">
+				   {%else%}
+						<img width="64px" height="64px"
+						 src = "static/images/default_avatar.png"
+						 style="border-radius: 50%; border: solid 1px black;float:left;margin-right:25px;">
+					 {%end%}
+         </a>
+         <a href="/user?id={{user_id}}">
+             {{name}}
+         </a>
+         <input type="button" onclick="focuser();" id='foc'
+         class="button special color4" value="关注TA">
+            <input type="button" onclick="showActivities()"
+            class="button special color2" value="动态">
+        			<input type="button" class="button special color3"
+               name="" value="TA的个人收藏" id='searchcol'>
+    </div>
+		</div>
+<div id="page-wrapper">
+
+  <div id="wrapper">
+    <section class="panel color2-alt">
+    <div class="span-5-0">
+      <h3 class="major">个人信息</h3>
+      <form name="form" method="post" action="/info" enctype="multipart/form-data">
+        <div class="field third">
+          <label for="demo-name">用户id</label>
+          <input type="text" name="user_id" value="{{user_id}}" disabled/>
+        </div>
+        <div class="field third">
+          <label for="demo-name">用户名</label>
+          <input type="text" name="name" value="{{name}}" disabled/>
+        </div>
+        <div class="field third">
+          <label for="demo-name">手机</label>
+          <input type="text" name="phone" value="{{phone}}" disabled/>
+        </div>
+        <div class="field third">
+          <label for="demo-email">Email</label>
+          <input type="email" name="email" value="{{email}}" placeholder="邮箱" disabled/>
+        </div>
+        <div class="field third">
+          <label for="demo-category" disabled>性别</label>
+          <div class="select-wrapper">
+            <select name="gender" id="gender" disabled>
+              <option value="1" {%if gender==1%}selected{%end%}>男</option>
+              <option value="0" {%if gender==0%}selected{%end%}>女</option>
+              <option value="-1" {%if gender==-1%}selected{%end%}>其它</option>
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <label>个人简介</label>
+          <textarea name="selfintro" id="intro" placeholder="Enter your introduce" rows="6" disabled>{{selfintro}}</textarea>
+        </div>
+      </form>
+    </div>
+  </section>
+  <section class="panel banner right color4-alt">
+    <div class="span-3-55">
+      <h1 class="major">关注列表
+      </h1>
+      {%for user in users%}
+        {%module usermodule(isU=False, user_id=user)%}
+      {%end%}
+    </div>
+
+  </section>
+		<div class="copyright">&copy; Mindread: <a href="#">Mindread</a>.</div>
+	</div>
+</div>
+
+
+{%end%}

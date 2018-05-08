@@ -1,0 +1,35 @@
+<section class = "panel" >
+  <div class="image filtered span-2-3" data-position="25% 25%">
+   <img src="static/images/{{img}}" onclick =
+    "javascript:location.href='/book?ISBN={{ISBN}}';"/>
+  </div>
+</section>
+<section class = "panel banner right color0" >
+    <div class = "span-5-0" >
+        <h2 > <a href = "/user?id={{user_id}}">
+          {%if avatar%}
+          <img width="48px" height="48px" src = "static/images/{{avatar}}" style="border-radius: 50%; border: solid 1px black;margin-right:25px;">
+          {%else%}
+           <img width="48px" height="48px" src = "static/images/default_avatar.png" style="border-radius: 50%; border: solid 1px black;margin-right:25px;">
+          {%end%} </a >
+    <a href = "/user?id={{user_id}}" class = "color0" >
+        {{name}} </a>
+        <span style="float:right;color:#ddd">发表于：{{date}}</span>  </h2 >
+        <h1 class = "major" > {{title}}
+        </h1 >
+        <p style="color: black;font-size: 20px; font-weight:bolder">
+          {%raw content%}
+        </p>
+        {%if isU%}
+        <button name = "delete" style = "float:right;"
+         class = "button special color1"
+         onclick="delBlog('{{blog_id}}', '{{user_id}}')"
+         >删除此篇</button >
+        {%end%}
+        <button name = "button" style = "float:right;"
+         class = "button special color2"
+         onclick =
+          "javascript:location.href='/comments?blog_id={{blog_id}}';"
+         >查看评论</button >
+    </div >
+</section >

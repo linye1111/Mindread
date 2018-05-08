@@ -1,0 +1,16 @@
+
+<h3 id="h{{user_id}}">
+<a href = "/user?id={{user_id}}">
+  {%if avatar%}
+  <img width="48px" height="48px" src = "static/images/{{avatar}}" style="border-radius: 50%; border: solid 1px black;margin-right:25px;">
+  {%else%}
+   <img width="48px" height="48px" src = "static/images/default_avatar.png"
+    style="border-radius: 50%; border: solid 1px black;margin-right:25px;">
+  {%end%} </a >
+<a href = "/user?id={{user_id}}"  >
+{{name}} </a>
+{%if isU  %}
+<input type="button" onclick="unfocuser('{{user_id}}');" id='unfoc'
+class="button special color4" value="取消关注">
+{%end%}
+</h3 >

@@ -1,0 +1,169 @@
+{%extends base.html%}
+{%block title%}铭阅欢迎 {{name}} {%end%}
+{%block head%}
+<script type="text/javascript">
+    $(function () {
+        $("form").submit(function () {
+					var w=$('#w').val();
+					var opt = $("input[name='opt']:checked").val();
+          var div_index_wrapper = $('#wrapper');
+            $.ajax({
+               url:"/books",
+                data:{"w":w,'opt':opt,'id':"{{user_id}}"},
+                type:"get",
+                datatype:"json",
+                async:true,
+                success:function (data) {
+                    console.log('success:');
+                    div_index_wrapper.html(data['booksHtml']);
+                },
+                error:function (err) {
+                    console.log('error:'+err);
+                }
+            });
+        });
+
+    });
+    function showActivities() {
+        var div_index_wrapper = $('#wrapper');
+        $.ajax({
+           url:"/blogs",
+            data:{"id":"{{user_id}}"},
+            type:"get",
+            datatype:"json",
+            async:true,
+            success:function (data) {
+                console.log('success:');
+                div_index_wrapper.html(data['blogsHtml']);
+            },
+            error:function (err) {
+                console.log('error:'+err);
+            }
+        });
+    }
+    function delBlog(blog_id, user_id) {
+      if (confirm('确实要删除该篇文章?')){
+          $.ajax({
+             url:"/delblog",
+              data:{"blog_id": blog_id, "user_id": user_id},
+              type:"post",
+              datatype:"json",
+              async:true,
+              success:function (data) {
+                  if (data['success']){
+                    alert("删除成功！");
+                    showActivities();
+                  }else{
+                    alert("删除失败！");
+                  }
+
+              },
+              error:function (err) {
+                  console.log('error:'+err);
+              }
+          });
+      }
+    }
+    function checkcol(ISBN){
+      $.ajax({
+        url:"/check",
+        data:{"ISBN":ISBN, "type":"col"},
+        type:"post",
+        datatype:"json",
+        async:true,
+        success:function (data){
+          btn = $("#col"+ISBN);
+          if (data['islogin'])
+            if (data['iscol']){
+              btn.val('取消收藏');
+            }
+        },
+        error:function (err) {
+            console.log('error:'+err);
+        }
+      });
+    }
+    function colBook(ISBN){
+      btn = $("#col"+ISBN);
+      $.ajax({
+        url:"/colbook",
+        data:{"ISBN":ISBN, "action": btn.val()},
+        type:"post",
+        datatype:"json",
+        async:true,
+        success:function (data){
+          if (data['islogin'])
+            if (data['iscol']){
+              btn.val('取消收藏');
+              alert('已收藏！');
+            }else{
+              btn.val('收藏本书');
+              alert('已取消收藏！');
+            }
+          else {
+            location.href='/login';
+          }
+        },
+        error:function (err) {
+            console.log('error:'+err);
+        }
+      });
+    }
+</script>
+
+
+{%end%}
+	{%block body%}
+		<div style="position: fixed;z-index: 1;left:100px;top:15px;" class="color0">
+
+			 <div style="font-size:18px;color:black;height:64px; overflow: hidden;text-overflow: ellipsis;" class="color0">
+				 <a href="/" sytle="float:left">
+					 {%if avatar%}
+					 <img width="64px" height="64px"
+						src = "static/images/{{avatar}}"
+						style="border-radius: 50%; border: solid 1px black;float:left;margin-right:25px;">
+				   {%else%}
+						<img width="64px" height="64px"
+						 src = "static/images/default_avatar.png"
+						 style="border-radius: 50%; border: solid 1px black;float:left;margin-right:25px;">
+					 {%end%}
+         </a>
+         <a href="/">
+             {{name}}
+         </a>
+         <button type="button" onclick="showActivities()" sytle="float:left;"
+         class="button special color2">
+           查看个人动态</button>
+         <button type="button" onclick="javascript:location.href='/info'" sytle="float:left;"
+         class="button special color3">
+           修改个人信息</button>
+         <button type="button" onclick="javascript:location.href='/logout';"
+          sytle="position:absolute;right:0px;"
+           class="button special color4">注销</button>
+
+         </div>
+				<br>
+		<form onsubmit="return false;" id="form" name="form">
+			<b style="color:black;">图书查询：<br></b><input type="text"
+			placeholder="书名/类别/ISBN" class="button special color4" style="font-size:16px;width:270px;" name="w" id='w' value=""> <div class="">
+
+			<input type="radio" name="opt" value="0" checked><b style="color:black;">书名</b>
+			<input type="radio" name="opt" value="1"><b style="color:black;">  类别</b>  	<input type="radio" name="opt" value="2"> <b style="color:black;">  ISBN</b>
+			<input type="submit" class="button special color1"
+			 style="margin-left:15px;" name="" value="查询" id="searchbtn"></div>
+		</form>
+		</div>
+<div id="page-wrapper">
+
+  <div id="wrapper">
+
+
+	{%for book in books%}
+	{%module bookmodule(**book)%}
+	{%end%}
+		<div class="copyright">&copy; Mindread: <a href="#">Mindread</a>.</div>
+	</div>
+</div>
+
+
+{%end%}

@@ -1,0 +1,36 @@
+<section class = "panel" >
+  <div class="image filtered span-2-3" data-position="25% 25%">
+   <img src="static/images/{{img}}" onclick =
+    "javascript:location.href='/book?ISBN={{ISBN}}';"/>
+  </div>
+</section>
+<section class="panel banner right color0">
+  <div class="span-3-55" >
+    <h1 class="major">{{title}}
+      <span>{%if subtitle%}{{subtitle}}
+            {%elif orititle%}{{orititle}}
+            {%end%}</span>
+    </h1>
+    <p>
+      {%if author%}作者: {{author}}<br />{%end%}
+      {%if press%}出版社: {{press}}<br />{%end%}
+      {%if orititle%}原作名: {{orititle}}<br />{%end%}
+      {%if translator%}译者: {{translator}}<br />{%end%}
+      {%if date%}出版年: {{date}}<br />{%end%}
+      {%if price%}定价: {{price}}<br />{%end%}
+      {%if ISBN%}ISBN: {{ISBN}}{%end%}
+    </p>
+    <ul class="actions">
+      <li><a href="/book?ISBN={{ISBN}}" class="button special color1 circle icon fa-angle-right">Next</a></li>
+    </ul>
+    <script type="text/javascript">
+      checkcol("{{ISBN}}")
+    </script>
+    <input type = "button" name = "button" style = "position:absolute;
+      bottom:0px;right:0px;" id = "col{{ISBN}}"
+      onclick = "colBook('{{ISBN}}');"
+     class = "button special color1" value="收藏本书"
+     >
+  </div>
+
+</section>

@@ -1,0 +1,121 @@
+{%extends base.html%}
+{%block title%}铭阅注册{%end%}
+
+{%block head%}
+<script type="text/javascript">
+    $(function () {
+        var input_regist_phone=$('#input_regist_phone');
+        var span_regist_result = $('#span_regist_result');
+        input_regist_phone.blur(function () {
+            var phone = input_regist_phone.val();
+
+            $.ajax({
+               url:"/check",
+                data:{"phone":phone,"type":"regist"},
+                type:"post",
+                datatype:"json",
+                async:true,
+                success:function (data) {
+                    console.log('success:'+data['msg']);
+                    if(data.msg=='fail'){
+                        span_regist_result.text('该用户名不可使用');
+                    }else{
+                        span_regist_result.text('');
+                    }
+                },
+                error:function (err) {
+                    console.log('error:'+err);
+                }
+            });
+        });
+
+    });
+    var wait=60;
+    function sendcode() {
+      var input_regist_phone = $('#input_regist_phone');
+      var btn = $('#send');
+      if (wait == 60){
+        $.ajax({
+          'url': '/sendcode',
+          'data': {'phone': input_regist_phone.val()},
+          'type': 'post',
+          'datatype': 'json',
+          'async': true,
+          success: function(data){
+            if (data['success']){
+              alert('手机验证码发送成功！');
+            }
+            else {
+              alert('手机验证码发送失败！请检查您输入的手机号。')
+            }
+          },
+          error:function(err){
+              console.log('error:'+err);
+          }
+        });
+      }
+      if (wait == 0) {
+       btn.attr("disabled", false);
+       btn.val("发送手机验证码");
+       input_regist_phone.attr("disabled", false);
+       wait = 60;
+      } else {
+       btn.attr("disabled", true);
+       input_regist_phone.attr("disabled", true);
+       btn.val("重新发送(" + wait + ")");
+       wait--;
+       setTimeout(function() {
+        sendcode();
+       },
+       1000)
+      }
+    }
+</script>
+
+{%end%}
+
+{%block body%}
+<div id="page-wrapper">
+  <div id="wrapper">
+    <section class="panel banner right">
+    	<div class="image filtered span-2-5" data-position="25% 25%">
+    		<img src="static/images/pic01.jpg"/>
+    	</div>
+    </section>
+    <section class="panel color4-alt">
+    <div class="inner columns divided">
+      <div class="span-5-0">
+      <h1 class="major">注册</h1>
+      <form name="form" method="post" action="/regist" enctype="multipart/form-data" onSubmit="return checkEmpty(form);">
+        <div class="field half">
+          <label sytle="font-size:24px;font-weight: bolder;">手机号：</label>
+          <input type="text" name="phone" id="input_regist_phone">
+        </div>
+        <div class="field half">
+          <span id="span_regist_result" style="color: red;font-weight: bolder;">{{result}}</span>
+        </div>
+        <div class="field half" >
+          <label sytle="font-size:24px;font-weight: bolder;">密码：</label>
+          <input type="text" name="password">
+        </div>
+        <div class="field half" >
+        </div>
+        <div class="field half">
+          <label sytle="font-size:24px;font-weight: bolder;">手机验证码：</label>
+          <input type="text" name="code">
+        </div>
+        <div class="field half">
+          <label sytle="font-size:24px;font-weight: bolder;">点击发送：</label>
+          <input type="button" value="发送手机验证码" class="button special" id="send" onclick="sendcode();">
+        </div>
+        <ul class="actions">
+          <li><input type="submit" value="注册" class="button special"></li>
+        </ul>
+      </form>
+        </div>
+      </div>
+  </section>
+    <div class="copyright">&copy; Mindread: <a href="#">Mindread</a>.</div>
+  </div>
+</div>
+{%end%}

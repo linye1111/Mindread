@@ -1,0 +1,20 @@
+<div style="position: fixed;z-index: 1;left:100px;top:45px;"
+ class="color0">
+   <div style="font-size:32px;color:black;width:500px;height:64px; ellipsis;" class="color0">
+     <a href="/" sytle="float:left">
+       {%if avatar%}
+       <img width="64px" height="64px"
+        src = "static/images/{{avatar}}"
+        style="border-radius: 50%; border: solid 1px black;float:left;margin-right:25px;">
+       {%else%}
+        <img width="64px" height="64px" src = "static/images/default_avatar.png"
+         style="border-radius: 50%; border: solid 1px black;float:left;margin-right:25px;">
+       {%end%}
+     </a>
+
+    <a href="/">
+        {{name}}
+    </a>
+     </div>
+    <br>
+</div>

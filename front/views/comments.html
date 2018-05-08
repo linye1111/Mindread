@@ -1,0 +1,168 @@
+{%extends base.html%}
+{%block title%}铭阅 {{title}} {%end%}
+{%block head%}
+<script type="text/javascript">
+$(function () {
+      $("form").submit(function () {
+        for(i=0;i<form.length;i++){
+        if( form.elements[i].value=="" ){
+        alert("表单信息不能为空");
+        return false;
+        }
+      }
+        if (confirm("是否提交？")){
+          var content = $("#content").val();
+          var comments = $('#comments');
+            $.ajax({
+               url:"/comments",
+                data:{'content': content, 'blog_id':"{{blog_id}}"},
+                type:"post",
+                datatype:"json",
+                async:true,
+                success:function (data) {
+                    console.log('success:');
+                    if (data['islogin']){
+                        if (data['success']){
+                          comments.html(data['commentsHtml']);
+                          alert('评论成功！');
+                        }
+                        else{
+                          alert('评论失败！');
+                          }
+                        }
+                    else{
+                        location.href='/login';
+                      }
+                },
+                error:function (err) {
+                    console.log('error:'+err);
+                }
+            });
+          }
+      });
+
+  });
+function complain(comment_id){
+  if (confirm("确认举报？")){
+    var btn = $('#cpl'+comment_id);
+    $.ajax({
+      url:'/cpl',
+      data:{'comment_id': comment_id},
+      type:'post',
+      datatype:'json',
+      async:'true',
+      success:function(data){
+        if (data['islogin']){
+            if (data['success']){
+              alert('举报成功！');
+              btn.val('已举报')
+              btn.attr('disabled', 'true')
+            }
+            else{
+              alert('举报失败！');
+              }
+            }
+        else{
+            location.href='/login';
+          }
+      },
+      error:function(err){
+        console.log('error'+err)
+      }
+    });
+  }
+}
+function focusBlog(blog_id){
+  var btn = $('#'+blog_id);
+  $.ajax({
+    url:'/focblog',
+    data:{'blog_id': blog_id},
+    type:'post',
+    datatype:'post',
+    async:true,
+    success:function(data){
+      if (data['islogin']){
+        if(data['success']){
+          btn.val('已标记');
+          btn.attr('disabled','true');
+        }else{
+          alert('标记失败！')
+        }
+      }else{
+        location.href = "/login"
+      }
+    },
+    error:function(err){
+      console.log('error'+err)
+    }
+  });
+}
+</script>
+
+{%end%}
+{%block body%}
+{%if islogin%}
+  {%module umodule()%}
+{%end%}
+<div id="page-wrapper">
+
+  <div id="wrapper">
+    <section class = "panel" >
+      <div class="image filtered span-2-3" data-position="25% 25%">
+       <img src="static/images/{{img}}" onclick =
+        "javascript:location.href='/book?ISBN={{ISBN}}';"/>
+      </div>
+    </section>
+    <section class = "panel banner right color0" >
+        <div class = "span-5-0" >
+            <h2 > <a href = "/user?id={{blog_user['user_id']}}">
+              {%if blog_user['avatar']%}
+              <img width="48px" height="48px" src = "static/images/{{blog_user['avatar']}}"
+               style="border-radius: 50%;  border: solid 1px black;margin-right:25px;">
+              {%else%}
+               <img width="48px" height="48px" src = "static/images/default_avatar.png"
+                style="border-radius: 50%; border: solid 1px black;margin-right:25px;">
+              {%end%} </a >
+        <a href = "/user?id={{blog_user['user_id']}}" class = "color0" >
+            {{blog_user['name']}} </a>
+            <span style="float:right;color:#ddd">发表于：{{date}}</span>  </h2 >
+            <h1 class = "major" > {{title}}
+            </h1 >
+            <p style="color: black;font-size: 20px; font-weight:bolder">
+              {%raw content%}
+            </p>
+            <input type='button' name = "focus" style = "float:right;" id="{{blog_id}}" value="标记此篇"
+             class = "button special color2" onclick="focusBlog('{{blog_id}}')"
+             >
+        </div >
+    </section >
+
+    {%if islogin%}
+    <section class="panel color4-alt">
+      <div class="inner columns divided">
+        <div class="span-3-55">
+          <h1 class = "major">评论读书笔记或回答提问</h1>
+          <form onsubmit="return false" action="#" name="form">
+            <div class="field">
+              <label>Content</label>
+              <textarea name="content" id="content" rows="5"></textarea>
+            </div>
+            <ul class="actions">
+              <li><input type="submit" value="提交" class="button special" /></li>
+            </ul>
+          </form>
+        </div>
+    </section>
+
+  <section id='comments' class="panel">
+    {%for comment in comments%}
+  	{%module commentmodule(**comment)%}
+  	{%end%}
+  </section>
+    {%end%}
+		<div class="copyright">&copy; Mindread: <a href="#">Mindread</a>.</div>
+	</div>
+</div>
+
+
+{%end%}

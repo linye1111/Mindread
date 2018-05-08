@@ -1,0 +1,53 @@
+{%extends base.html%}
+{%block title%}登录铭阅{%end%}
+{%block head%}
+<script type="text/javascript">
+
+    function ChangeCode() {
+        var code=document.getElementById('imgCode');
+        code.src+='?';
+    }
+</script>
+{%end%}
+{%block body%}
+<div id="page-wrapper">
+  <div id="wrapper">
+    <section class="panel banner right">
+    	<div class="image filtered span-2-5" data-position="25% 25%">
+    		<img src="static/images/pic02.jpg"/>
+    	</div>
+    </section>
+
+      <section class="panel color0">
+      <div class="inner columns divided">
+        <div class="span-5-0">
+        <h1 class="major">登录</h1>
+    		<form name="form" method="post" action="/login" enctype="multipart/form-data" onSubmit="return checkEmpty(form);">
+    			<div class="field half">
+    				<label sytle="font-size:24px;font-weight: bolder;">手机号：</label>
+    				<input id="input_login_phone" type="text" name="phone">
+    			</div>
+    			<div class="field half">
+    				<label sytle="font-size:24px;font-weight: bolder;">密码：</label>
+    				<input type="password" name="password">
+    			</div>
+    			<div class="field half">
+    				<image src="/check_code" onclick="ChangeCode();" id="imgCode">
+    				<input name="code" type="text" placeholder="验证码">
+    			</div>
+    			<div class="field half">
+    				<b style="color: red;font-weight: bolder;">{{result}}</b>
+    			</div>
+    			<ul class="actions">
+    				<li><input type="submit" value="登录" class="button special"></li>
+    				<li><input type="button" value="注册" class="button special"
+    					 onclick="javascript:location.href='/regist';" ></li>
+    			</ul>
+    		</form>
+          </div>
+        </div>
+    </section>
+    <div class="copyright">&copy; Mindread: <a href="/">Mindread</a>.</div>
+  </div>
+</div>
+{%end%}
