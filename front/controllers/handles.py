@@ -9,6 +9,21 @@ from front.controllers.modules import BookModule, UserBlogModule, BookBlogModule
 from configuration import mysettings
 import multiprocessing
 
+def islogin_rd(fn):
+    def wrapper(handler, *args, **kwargs):
+        if handler.session['islogin']:
+            return fn(handler, *args, **kwargs)
+        else:
+            handler.redirect('/login')
+    return wrapper
+
+def islogin_wj(fn):
+    def wrapper(handler, *args, **kwargs):
+        if handler.session['islogin']:
+            return fn(handler, *args, **kwargs)
+        else:
+            handler.write({'islogin': False, 'success': False})
+    return wrapper
 
 class BaseHandler(RequestHandler):
     def initialize(self):
@@ -53,27 +68,25 @@ class BookHandler(BaseHandler):
             'book.html', islogin=self.session['islogin'], blogs=blogs,
             **dict(book, **user))
 
+    @islogin_wj
     @gen.coroutine
     def post(self, *args, **kwargs):
-        if self.session['islogin']:
-            user_id = self.session['user_id']
-            ISBN = self.get_body_argument('ISBN')
-            title = self.get_body_argument('title')
-            content = self.get_body_argument('content')
-            success = self.application.dbutil.addBlogtoBook(
-                user_id=user_id, ISBN=ISBN, title=title, content=content)
-            if success:
-                blogsHtml = ''
-                blogs = self.application.dbutil.findBlogs(ISBN=ISBN)
-                blogmodule = BookBlogModule(self)
-                for blog in blogs:
-                    blogsHtml += blogmodule.render(**blog).decode()
-                self.write({'islogin': True,
-                            'success': True, 'blogsHtml': blogsHtml})
-            else:
-                self.write({'islogin': True, 'success': False})
+        user_id = self.session['user_id']
+        ISBN = self.get_body_argument('ISBN')
+        title = self.get_body_argument('title')
+        content = self.get_body_argument('content')
+        success = self.application.dbutil.addBlogtoBook(
+            user_id=user_id, ISBN=ISBN, title=title, content=content)
+        if success:
+            blogsHtml = ''
+            blogs = self.application.dbutil.findBlogs(ISBN=ISBN)
+            blogmodule = BookBlogModule(self)
+            for blog in blogs:
+                blogsHtml += blogmodule.render(**blog).decode()
+            self.write({'islogin': True,
+                        'success': True, 'blogsHtml': blogsHtml})
         else:
-            self.write({'islogin': False})
+            self.write({'islogin': True, 'success': False})
 
 
 class BlogsHandler(BaseHandler):
@@ -120,26 +133,18 @@ class BooksHandler(BaseHandler):
 
 
 class IndexHandler(BaseHandler):
+    @islogin_rd
     @gen.coroutine
     def get(self, *args, **kwargs):
-        # 服务器向浏览器检查session
-        if self.session['islogin']:
-            phone = self.session['phone']
-            user = self.application.dbutil.findUser(phone=phone, brief=True)
-            if user:
-                self.session['user_id'] = str(user['user_id'])
-                books = self.application.dbutil.findBooks(
-                    user_id=user['user_id'])
-                self.render('index.html', books=books, **user)
-            else:
-                self.write('The user is not exist!')
+        phone = self.session['phone']
+        user = self.application.dbutil.findUser(phone=phone, brief=True)
+        if user:
+            self.session['user_id'] = str(user['user_id'])
+            books = self.application.dbutil.findBooks(
+                user_id=user['user_id'])
+            self.render('index.html', books=books, **user)
         else:
-            self.redirect('/login')
-
-    @gen.coroutine
-    def post(self, *args, **kwargs):
-        self.redirect('/search?w='+self.get_body_argument('w') +
-                      '&opt='+self.get_body_argument('opt'))
+            self.write('The user is not exist!')
 
 
 class LoginHandler(BaseHandler):
@@ -255,63 +260,57 @@ class CheckHandler(BaseHandler):
 
 
 class ColBookHandler(BaseHandler):
+    @islogin_wj
     @gen.coroutine
     def post(self, *args, **kwargs):
-        if self.session['islogin']:
-            ISBN = self.get_body_argument('ISBN')
-            action = self.get_body_argument('action')
-            user_id = self.session['user_id']
-            if action == '收藏本书':
-                self.write({'islogin': True,
-                            'iscol': self.application.dbutil.colBook(
-                                user_id, ISBN, iscol=True
-                            )})
-            else:
-                self.write({'islogin': True,
-                            'iscol': self.application.dbutil.colBook(
-                                user_id, ISBN, iscol=False
-                            )})
+        ISBN = self.get_body_argument('ISBN')
+        action = self.get_body_argument('action')
+        user_id = self.session['user_id']
+        if action == '收藏本书':
+            self.write({'islogin': True,
+                        'iscol': self.application.dbutil.colBook(
+                            user_id, ISBN, iscol=True
+                        )})
         else:
-            self.write({'islogin': False})
+            self.write({'islogin': True,
+                        'iscol': self.application.dbutil.colBook(
+                            user_id, ISBN, iscol=False
+                        )})
 
 
 class InfoHandler(BaseHandler):
+    @islogin_rd
     @gen.coroutine
     def get(self, *args, **kwargs):
-        if self.session['islogin']:
-            user_id = self.session['user_id']
-            user = self.application.dbutil.findUser(user_id=user_id)
-            users = self.application.dbutil.findFocusedUsers(user_id=user_id)
-            self.render('info.html', users=users, **user)
-        else:
-            self.redirect('/login')
+        user_id = self.session['user_id']
+        user = self.application.dbutil.findUser(user_id=user_id)
+        users = self.application.dbutil.findFocusedUsers(user_id=user_id)
+        self.render('info.html', users=users, **user)
 
+    @islogin_rd
     @gen.coroutine
     def post(self, *args, **kwargs):
-        if self.session['islogin']:
-            user_id = self.session['user_id']
+        user_id = self.session['user_id']
 
-            name = self.get_body_argument('name')
-            email = self.get_body_argument('email')
-            gender = self.get_body_argument('gender')
-            selfintro = self.get_body_argument('selfintro')
-            avatar = user_id+'.jpg'
-            if self.request.files:
-                file = self.request.files['avatar'][0]
-                # 把用户上传的头像文件保存到服务器磁盘
-                path = user_id+'.'+file['filename'].split('.')[-1]
-                writer = open('statics/images/{}'.format(path), 'wb')
-                writer.write(file['body'])
-                writer.close()
-                avatar = path
-            self.application.dbutil.updateUser(user_id=user_id,
-                                               name=name, email=email,
-                                               gender=gender,
-                                               selfintro=selfintro,
-                                               avatar=avatar)
-            self.redirect('/')
-        else:
-            self.redirect('/login')
+        name = self.get_body_argument('name')
+        email = self.get_body_argument('email')
+        gender = self.get_body_argument('gender')
+        selfintro = self.get_body_argument('selfintro')
+        avatar = user_id+'.jpg'
+        if self.request.files:
+            file = self.request.files['avatar'][0]
+            # 把用户上传的头像文件保存到服务器磁盘
+            path = user_id+'.'+file['filename'].split('.')[-1]
+            writer = open('statics/images/{}'.format(path), 'wb')
+            writer.write(file['body'])
+            writer.close()
+            avatar = path
+        self.application.dbutil.updateUser(user_id=user_id,
+                                           name=name, email=email,
+                                           gender=gender,
+                                           selfintro=selfintro,
+                                           avatar=avatar)
+        self.redirect('/')
 
 
 class CommentsHandler(BaseHandler):
@@ -329,9 +328,9 @@ class CommentsHandler(BaseHandler):
         self.render('comments.html', islogin=self.session['islogin'],
                     blog_user=blog_user, comments=comments, img=img, **blog)
 
+    @islogin_wj
     @gen.coroutine
     def post(self, *args, **kwargs):
-        if self.session['islogin']:
             user_id = self.session['user_id']
             blog_id = self.get_body_argument('blog_id')
             content = self.get_body_argument('content')
@@ -348,8 +347,6 @@ class CommentsHandler(BaseHandler):
                             'success': True, 'commentsHtml': commentsHtml})
             else:
                 self.write({'islogin': True, 'success': False})
-        else:
-            self.write({'islogin': False})
 
 
 class ComplainHandler(BaseHandler):
@@ -364,15 +361,13 @@ class ComplainHandler(BaseHandler):
 
 
 class FocBlogHandler(BaseHandler):
+    @islogin_wj
     @gen.coroutine
     def post(self, *args, **kwargs):
-        if self.session['islogin']:
-            user_id = self.session['user_id']
-            blog_id = self.get_body_argument('blog_id')
-            self.application.dbutil.focBlog(user_id=user_id, blog_id=blog_id)
-            self.write({'islogin': True, 'success': True, })
-        else:
-            self.write({'islogin': False})
+        user_id = self.session['user_id']
+        blog_id = self.get_body_argument('blog_id')
+        self.application.dbutil.focBlog(user_id=user_id, blog_id=blog_id)
+        self.write({'islogin': True, 'success': True, })
 
 
 class UserHandler(BaseHandler):
@@ -386,29 +381,25 @@ class UserHandler(BaseHandler):
         else:
             self.render('user.html', islogin=False, users=users, **user)
 
+    @islogin_wj
     @gen.coroutine
     def post(self, *args, **kwargs):
-        if self.session['islogin']:
-            success = self.application.dbutil.focUser(
-                self.session['user_id'],
-                self.get_body_argument('user_id')
-            )
-            self.write({'islogin': True, 'success': success})
-        else:
-            self.write({'islogin': False})
+        success = self.application.dbutil.focUser(
+            self.session['user_id'],
+            self.get_body_argument('user_id')
+        )
+        self.write({'islogin': True, 'success': success})
 
 
 class UnfocUserHandler(BaseHandler):
+    @islogin_wj
     @gen.coroutine
     def post(self, *args, **kwargs):
-        if self.session['islogin']:
-            success = self.application.dbutil.unfocUser(
-                self.session['user_id'],
-                self.get_body_argument('user_id')
-            )
-            self.write({'islogin': True, 'success': success})
-        else:
-            self.write({'islogin': False})
+        success = self.application.dbutil.unfocUser(
+            self.session['user_id'],
+            self.get_body_argument('user_id')
+        )
+        self.write({'islogin': True, 'success': success})
 
 
 class SendCodeHandler(BaseHandler):
