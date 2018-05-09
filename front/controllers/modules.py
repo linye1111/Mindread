@@ -13,7 +13,8 @@ class UserBlogModule(UIModule):
         user = self.handler.application.dbutil.findUser(
             user_id=kwargs['blog_user_id'], brief=True)
         kwargs['content'] = '<br>'.join(kwargs['content'].split('\n'))
-        return self.render_string('modules/user_blog_module.html', isU=user['user_id']==self.handler.session['user_id'], 
+        isU = user['user_id'] == self.handler.session['user_id']
+        return self.render_string('modules/user_blog_module.html', isU=isU,
                                   img=img, **dict(kwargs, **user))
 
 
