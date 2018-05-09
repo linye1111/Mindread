@@ -26,7 +26,7 @@ class MyApplication(Application):
                          debug=True)
         self.dbutil = DBUtil(**mysettings.settings['dbsetting'])
         self.q = multiprocessing.Queue()
-        for _ in range(mysettings['crawl_num']):
+        for _ in range(mysettings.settings['crawl_num']):
             multiprocessing.Process(target=crawlbyWord, args=(self.q,)).start()
 
 
