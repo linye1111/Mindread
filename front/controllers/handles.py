@@ -6,6 +6,7 @@ from front.util.session import MySession
 import time
 from front.util.crawlutil import crawlbyWord
 from front.controllers.modules import BookModule, UserBlogModule, BookBlogModule, CommentModule
+from configuration import mysettings
 import multiprocessing
 
 
@@ -106,9 +107,7 @@ class BooksHandler(BaseHandler):
                     books = findBooks(tag=w)
                 if opt == '0':
                     books = findBooks(title=w)
-                    if len(books) < 5:
-
-                        time.sleep(10)
+                    if len(books) < mysettings.settings['book_least_num']:
                         self.application.q.put(w)
             else:
                 books = findBooks(user_id=user_id)

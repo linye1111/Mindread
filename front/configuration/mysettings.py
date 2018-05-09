@@ -8,5 +8,6 @@ settings = {
         'database': 'mindreaddb',
         'charset': 'utf8'
     },
-    'crawl_num': 2
+    'crawl_num': 2,
+    'book_least_num': 4
 }
