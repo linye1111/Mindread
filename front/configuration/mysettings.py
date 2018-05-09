@@ -7,6 +7,5 @@ settings = {
         'password': '123456',
         'database': 'mindreaddb',
         'charset': 'utf8'
-    },
-    'crawl_num': 2
+    }
 }
