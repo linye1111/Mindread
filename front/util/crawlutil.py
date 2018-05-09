@@ -8,7 +8,7 @@ import logging
 import re
 import json
 import pymysql
-from front.configuration.mysettings import settings
+from configuration.mysettings import settings
 logger = logging.getLogger("crawlLog")
 
 formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
