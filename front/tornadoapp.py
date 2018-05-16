@@ -1,11 +1,16 @@
 #!/usr/bin/python3
+
+# 导入猴子插件，用于替换原有的阻塞IO
+from gevent import monkey
+monkey.patch_all()
 from tornado.httpserver import HTTPServer
 from tornado.ioloop import IOLoop
 from controllers.handles import IndexHandler, LoginHandler,\
     RegistHandler, CheckHandler, CheckCodeHandler, InfoHandler, \
     BooksHandler, BlogsHandler, ColBookHandler, ComplainHandler, \
     BookHandler, DelBlogHandler, LogoutHandler, CommentsHandler, \
-    FocBlogHandler, UserHandler, UnfocUserHandler, SendCodeHandler
+    FocBlogHandler, UserHandler, UnfocUserHandler, SendCodeHandler, \
+    LoadsBooksHandler, LoadsBlogsHandler
 from controllers.modules import BookModule, UserBlogModule, \
     BookBlogModule, CommentModule, UserModule, UModule
 import os
@@ -27,7 +32,10 @@ class MyApplication(Application):
         self.dbutil = DBUtil(**mysettings.settings['dbsetting'])
         self.q = multiprocessing.Queue()
         for _ in range(mysettings.settings['crawl_num']):
-            multiprocessing.Process(target=crawlbyWord, args=(self.q,)).start()
+            p = multiprocessing.Process(target=crawlbyWord,
+                                        args=(self.q,))
+            p.daemon = True
+            p.start()
 
 
 app = MyApplication([(r'/', IndexHandler),
@@ -47,7 +55,9 @@ app = MyApplication([(r'/', IndexHandler),
                      (r'^/focblog', FocBlogHandler),
                      (r'^/user', UserHandler),
                      (r'^/unfocuser', UnfocUserHandler),
-                     (r'^/sendcode', SendCodeHandler)
+                     (r'^/sendcode', SendCodeHandler),
+                     (r'^/loadsbooks', LoadsBooksHandler),
+                     (r'^/loadsblogs', LoadsBlogsHandler)
                      ],
                     tp='views',
                     sp=os.path.join(os.path.dirname(__file__), "statics"),

@@ -2,20 +2,40 @@
 {%block title%}铭阅欢迎 {{name}} {%end%}
 {%block head%}
 <script type="text/javascript">
+    var mode = 'book'
+    function get_uuid() {
+      var s = [];
+      var hexDigits = "0123456789abcdef";
+      for (var i = 0; i < 36; i++) {
+          s[i] = hexDigits.substr(Math.floor(Math.random() * 0x10), 1);
+      }
+      s[14] = "4";  // bits 12-15 of the time_hi_and_version field to 0010
+      s[19] = hexDigits.substr((s[19] & 0x3) | 0x8, 1);  // bits 6-7 of the clock_seq_hi_and_reserved to 01
+      s[8] = s[13] = s[18] = s[23] = "-";
+
+      var uuid = s.join("");
+      return uuid;
+    }
     $(function () {
         $("form").submit(function () {
 					var w=$('#w').val();
 					var opt = $("input[name='opt']:checked").val();
           var div_index_wrapper = $('#wrapper');
+          window.uuid = get_uuid();
+          mode = 'book';
             $.ajax({
                url:"/books",
-                data:{"w":w,'opt':opt,'id':"{{user_id}}"},
+                data:{"w":w,'opt':opt,'id':"{{user_id}}",'uuid':uuid},
                 type:"get",
                 datatype:"json",
                 async:true,
                 success:function (data) {
-                    console.log('success:');
-                    div_index_wrapper.html(data['booksHtml']);
+                    if(data['islogin']){
+                      console.log('success:');
+                      div_index_wrapper.html(data['booksHtml']);
+                    }else{
+                      location.href = '/login';
+                    }
                 },
                 error:function (err) {
                     console.log('error:'+err);
@@ -26,15 +46,21 @@
     });
     function showActivities() {
         var div_index_wrapper = $('#wrapper');
+        window.uuid = get_uuid();
+        mode = 'activities';
         $.ajax({
            url:"/blogs",
-            data:{"id":"{{user_id}}"},
+            data:{"id":"{{user_id}}", "uuid": uuid},
             type:"get",
             datatype:"json",
             async:true,
             success:function (data) {
-                console.log('success:');
-                div_index_wrapper.html(data['blogsHtml']);
+                if(data['islogin']){
+                  console.log('success:');
+                  div_index_wrapper.html(data['blogsHtml']);
+                }else{
+                  location.href = '/login';
+                }
             },
             error:function (err) {
                 console.log('error:'+err);
@@ -109,6 +135,79 @@
         }
       });
     }
+    function getScrollLeft(){
+    　　var scrollLeft = 0, bodyScrollLeft = 0, documentScrollLeft = 0;
+    　　if(document.body){
+    　　　　bodyScrollLeft = document.body.scrollLeft;
+    　　}
+    　　if(document.documentElement){
+    　　　　documentScrollLeft = document.documentElement.scrollLeft;
+    　　}
+    　　scrollLeft = (bodyScrollLeft - documentScrollLeft > 0) ? bodyScrollLeft : documentScrollLeft;
+    　　return scrollLeft;
+    }
+
+
+    //文档的总宽度
+    function getScrollWidth(){
+    　　var scrollWidth = 0, bodyScrollWidth = 0, documentScrollWidth = 0;
+    　　if(document.body){
+    　　　　bodyScrollWidth = document.body.scrollWidth;
+    　　}
+    　　if(document.documentElement){
+    　　　　documentScrollWidth = document.documentElement.scrollWidth;
+    　　}
+    　　scrollWidth = (bodyScrollWidth - documentScrollWidth > 0) ? bodyScrollWidth : documentScrollWidth;
+    　　return scrollWidth;
+    }
+
+
+    //浏览器视口的宽度
+    function getWindowWidth(){
+    　　var windowWidth = 0;
+    　　if(document.compatMode == "CSS1Compat"){
+    　　　　windowWidth = document.documentElement.clientWidth;
+    　　}else{
+    　　　　windowWidth = document.body.clientWidth;
+    　　}
+    　　return windowWidth;
+    }
+
+    $(window).scroll(function(){
+    　　var scrollLeft = $(this).scrollLeft();
+    　　var scrollWidth = $(document).width();
+    　　var windowWidth = $(this).width();
+       var div_index_wrapper = $('#wrapper');
+    　　if(scrollLeft + windowWidth == scrollWidth){
+    　　　　if(mode == 'book'){
+              var url = '/loadsbooks';
+          }else{
+              var url = '/loadsblogs';
+          }
+          $.ajax({
+            url:url,
+            data:{"uuid":window.uuid},
+            type:"get",
+            datatype:"json",
+            async:true,
+            success:function (data){
+              if (data['islogin']){
+                if(data['bHtml']!=null){
+                  console.log('success:');
+                  div_index_wrapper.append(data['bHtml']);
+                }else{
+                  alert('已到最右侧！');
+                }
+              }else {
+                location.href='/login';
+              }
+            },
+            error:function (err) {
+                console.log('error:'+err);
+            }
+          });
+　　    }
+    });
 </script>
 
 
@@ -156,14 +255,33 @@
 <div id="page-wrapper">
 
   <div id="wrapper">
-
-
-	{%for book in books%}
-	{%module bookmodule(**book)%}
-	{%end%}
 		<div class="copyright">&copy; Mindread: <a href="#">Mindread</a>.</div>
 	</div>
 </div>
-
+<script type="text/javascript">
+  var w=$('#w').val();
+  var opt = $("input[name='opt']:checked").val();
+  var div_index_wrapper = $('#wrapper');
+  window.uuid = get_uuid();
+  mode = 'book';
+  $.ajax({
+     url:"/books",
+      data:{"w":w,'opt':opt,'id':"{{user_id}}",'uuid':uuid},
+      type:"get",
+      datatype:"json",
+      async:true,
+      success:function (data) {
+          if(data['islogin']){
+            console.log('success:');
+            div_index_wrapper.html(data['booksHtml']);
+          }else{
+            location.href = '/login';
+          }
+      },
+      error:function (err) {
+          console.log('error:'+err);
+      }
+  });
+</script>
 
 {%end%}

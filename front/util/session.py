@@ -1,6 +1,23 @@
 from .myutil import myuuid
-
+from threading import Timer
+import time
+from configuration import mysettings
 session = {}
+sessionTimer = {}
+
+
+def timer():
+    clearList = []
+    for t in sessionTimer:
+        if t < time.time() - mysettings.settings['sessionCycleSeconds']:
+            clearList.append(t)
+    for t in clearList:
+        if session.get(sessionTimer[t], None):
+            del session[sessionTimer[t]]
+        del sessionTimer[t]
+
+
+Timer(mysettings.settings['sessionCycleSeconds'], timer).start()
 
 
 class MySession:
@@ -36,4 +53,15 @@ class MySession:
             r[key] = value
             cookieid = myuuid()
             session[cookieid] = r
-            self.handler.set_cookie('mycookie', cookieid, expires_days=10)
+            sessionTimer[time.time()] = cookieid
+            self.handler.set_cookie('mycookie', cookieid,
+                                    expires_days=mysettings.settings['sessionCycleDays'])
+
+    def __delitem__(self, key):
+        cookieid = self.handler.get_cookie('mycookie')
+        if cookieid:
+            info = session.get(cookieid, None)
+            if info:
+                result = info.get(key, None)
+                if result:
+                    del info[key]

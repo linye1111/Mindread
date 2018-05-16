@@ -9,5 +9,8 @@ settings = {
         'charset': 'utf8'
     },
     'crawl_num': 2,
-    'book_least_num': 4
+    'book_least_num': 4,
+    'sessionCycleDays': 3,
+    'sessionCycleSeconds': 3 * 86400,
+    'volume': 5
 }

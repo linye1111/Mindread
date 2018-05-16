@@ -21,7 +21,8 @@ class DBUtil:
     def saveuser(self, phone, password):
         sql = 'insert into tb_user(user_phone, user_password, user_name, user_createdat)\
             values (%s, %s, %s, %s)'
-        params = (phone, password, 'phone'+phone, datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        params = (phone, password, 'phone' + phone,
+                  datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         try:
             self.cursor.execute(sql, params)
             self.cursor.connection.commit()
@@ -36,7 +37,8 @@ class DBUtil:
          user_blog_blog_id, user_blog_createdat) values (true, %s, %s, %s)'
 
         now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        params = (blog_id, title, content, user_id, ISBN, now, user_id, blog_id, now)
+        params = (blog_id, title, content, user_id,
+                  ISBN, now, user_id, blog_id, now)
         try:
             self.cursor.execute(sql, params)
             self.cursor.connection.commit()
@@ -132,20 +134,20 @@ class DBUtil:
         sql = ''
         params = tuple()
         if title is not None:
-            title = '%'+'%'.join(title.split())+'%'
+            title = '%' + '%'.join(title.split()) + '%'
             sql = 'select book_ISBN, book_title, book_subtitle, \
             book_translator, book_img, book_press, book_date, book_price, \
             book_author, book_orititle from tb_book where book_title like %s \
             or book_subtitle like %s or book_orititle like %s order by \
             book_date desc'
-            params = (title,)*3
+            params = (title,) * 3
         elif tag is not None:
-            tag = '%'+'%'.join(tag.split())+'%'
+            tag = '%' + '%'.join(tag.split()) + '%'
             sql = 'select distinct book_ISBN, book_title, book_subtitle, ' \
-             'book_translator, book_img, book_press, book_date, book_price, ' \
-             'book_author, book_orititle from tb_book join tb_book_tag on ' \
-             'book_ISBN = book_tag_book_ISBN join tb_tag on tag_id = ' \
-             'book_tag_tag_id where tag_name like %s order by book_date desc '
+                'book_translator, book_img, book_press, book_date, book_price, ' \
+                'book_author, book_orititle from tb_book join tb_book_tag on ' \
+                'book_ISBN = book_tag_book_ISBN join tb_tag on tag_id = ' \
+                'book_tag_tag_id where tag_name like %s order by book_date desc '
             params = (tag,)
         elif user_id is not None:
             sql = 'select book_ISBN, book_title, book_subtitle, \
@@ -155,7 +157,7 @@ class DBUtil:
              user_book_user_id where user_id=%s order by user_book_id desc'
             params = (user_id,)
         elif ISBN is not None:
-            ISBN = '%'+'%'.join(ISBN.split())+'%'
+            ISBN = '%' + '%'.join(ISBN.split()) + '%'
             sql = 'select book_ISBN, book_title, book_subtitle, \
              book_translator, book_img, book_press, book_date, book_price, \
              book_author, book_orititle from tb_book where book_ISBN like %s \
@@ -324,7 +326,8 @@ class DBUtil:
         sql = "update tb_user set user_name = %s, user_email = %s, \
          user_gender = %s, user_selfintro = %s, user_avatar = %s , \
          user_updatedat = %s where user_id = %s"
-        params = (name, email, gender, selfintro, avatar, user_id, datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        params = (name, email, gender, selfintro, avatar,
+                  datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), user_id)
         try:
             self.cursor.execute(sql, params)
             self.cursor.connection.commit()
@@ -335,7 +338,8 @@ class DBUtil:
     def addCommenttoBlog(self, user_id, blog_id, content):
         sql = "insert into tb_comment(comment_user_id, comment_blog_id, \
         comment_content, comment_createdat) values (%s, %s, %s, %s)"
-        params = (user_id, blog_id, content, datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        params = (user_id, blog_id, content,
+                  datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         try:
             self.cursor.execute(sql, params)
             self.cursor.connection.commit()
@@ -364,7 +368,8 @@ class DBUtil:
         if not result[0]:
             sql = 'insert into tb_user_blog(user_blog_user_id, user_blog_blog_id, \
             user_blog_focus, user_blog_createdat) values (%s, %s, %s, %s)'
-            params = (user_id, blog_id, True, datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+            params = (user_id, blog_id, True,
+                      datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             try:
                 self.cursor.execute(sql, params)
                 self.cursor.connection.commit()
@@ -400,5 +405,3 @@ class DBUtil:
             for u in result:
                 users.append(u[0])
         return users
-
-

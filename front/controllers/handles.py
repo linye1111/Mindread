@@ -9,6 +9,7 @@ from controllers.modules import BookModule, UserBlogModule, BookBlogModule, Comm
 from configuration import mysettings
 import multiprocessing
 
+
 def islogin_rd(fn):
     def wrapper(handler, *args, **kwargs):
         if handler.session['islogin']:
@@ -17,6 +18,7 @@ def islogin_rd(fn):
             handler.redirect('/login')
     return wrapper
 
+
 def islogin_wj(fn):
     def wrapper(handler, *args, **kwargs):
         if handler.session['islogin']:
@@ -24,6 +26,7 @@ def islogin_wj(fn):
         else:
             handler.write({'islogin': False, 'success': False})
     return wrapper
+
 
 class BaseHandler(RequestHandler):
     def initialize(self):
@@ -90,46 +93,86 @@ class BookHandler(BaseHandler):
 
 
 class BlogsHandler(BaseHandler):
+    @islogin_wj
     @gen.coroutine
     def get(self, *args, **kwargs):
-        if self.session['islogin']:
-            user_id = self.get_query_argument('id')
+        user_id = self.get_query_argument('id')
+        uuid = self.get_query_argument('uuid')
+        blogsHtml = ''
+        blogs = self.application.dbutil.findBlogs(user_id=user_id)
+        blogsmodule = UserBlogModule(self)
+        volume = mysettings.settings['volume']
+        self.session[uuid] = blogs[volume:]
+        for blog in blogs[:volume]:
+            blogsHtml += blogsmodule.render(**blog).decode()
+        self.write({'blogsHtml': blogsHtml, 'islogin': True})
+
+
+class LoadsBlogsHandler(BaseHandler):
+    @islogin_wj
+    @gen.coroutine
+    def get(self, *args, **kwargs):
+        uuid = self.get_query_argument('uuid')
+        volume = mysettings.settings['volume']
+        blogs = self.session[uuid][:volume]
+        blogsmodule = UserBlogModule(self)
+        if blogs != []:
             blogsHtml = ''
-            blogs = self.application.dbutil.findBlogs(user_id=user_id)
-            blogsmodule = UserBlogModule(self)
             for blog in blogs:
                 blogsHtml += blogsmodule.render(**blog).decode()
-            self.write({'blogsHtml': blogsHtml})
+            del self.session[uuid][:volume]
+            self.write({'bHtml': blogsHtml, 'islogin': True})
         else:
-            self.write({'blogsHtml': '<h1 style="color:black;">请登录铭阅！<h1>'})
+            del self.session[uuid]
+            self.write({'bHtml': None, 'islogin': True})
 
 
 class BooksHandler(BaseHandler):
+    @islogin_wj
     @gen.coroutine
     def get(self, *args, **kwargs):
-        if self.session['islogin']:
-            user_id = self.get_query_argument('id')
-            w = self.get_query_argument('w')
-            opt = self.get_query_argument('opt')
-            booksHtml = ''
-            findBooks = self.application.dbutil.findBooks
-            if w and opt:
-                if opt == '2':
-                    books = findBooks(ISBN=w)
-                if opt == '1':
-                    books = findBooks(tag=w)
-                if opt == '0':
-                    books = findBooks(title=w)
-                    if len(books) < mysettings.settings['book_least_num']:
-                        self.application.q.put(w)
-            else:
-                books = findBooks(user_id=user_id)
+        user_id = self.get_query_argument('id')
+        w = self.get_query_argument('w')
+        opt = self.get_query_argument('opt')
+        uuid = self.get_query_argument('uuid')
+        booksHtml = ''
+        findBooks = self.application.dbutil.findBooks
+        volume = mysettings.settings['volume']
+        if w and opt:
+            if opt == '2':
+                books = findBooks(ISBN=w)
+            if opt == '1':
+                books = findBooks(tag=w)
+            if opt == '0':
+                books = findBooks(title=w)
+                if len(books) < mysettings.settings['book_least_num']:
+                    self.application.q.put(w)
+        else:
+            books = findBooks(user_id=user_id)
+        booksmodule = BookModule(self)
+        self.session[uuid] = books[volume:]
+        for book in books[:volume]:
+            booksHtml += booksmodule.render(**book).decode()
+        self.write({'booksHtml': booksHtml, 'islogin': True})
+
+
+class LoadsBooksHandler(BaseHandler):
+    @islogin_wj
+    @gen.coroutine
+    def get(self, *args, **kwargs):
+        volume = mysettings.settings['volume']
+        uuid = self.get_query_argument('uuid')
+        books = self.session[uuid][:volume]
+        booksHtml = ''
+        if books != []:
             booksmodule = BookModule(self)
             for book in books:
                 booksHtml += booksmodule.render(**book).decode()
-            self.write({'booksHtml': booksHtml})
+            del self.session[uuid][:volume]
+            self.write({'bHtml': booksHtml, 'islogin': True})
         else:
-            self.write({'booksHtml': '<h1 style="color:black;">请登录铭阅！<h1>'})
+            del self.session[uuid]
+            self.write({'bHtml': None, 'islogin': True})
 
 
 class IndexHandler(BaseHandler):
@@ -208,7 +251,7 @@ class RegistHandler(BaseHandler):
                         phone=phone, password=mymd5(password))
                 except Exception as e:
                     info = str(e)  # 'dberror''duplicate'
-                    self.redirect('/regist?msg='+info)
+                    self.redirect('/regist?msg=' + info)
 
                 self.redirect('/login')
 
@@ -296,11 +339,11 @@ class InfoHandler(BaseHandler):
         email = self.get_body_argument('email')
         gender = self.get_body_argument('gender')
         selfintro = self.get_body_argument('selfintro')
-        avatar = user_id+'.jpg'
+        avatar = user_id + '.jpg'
         if self.request.files:
             file = self.request.files['avatar'][0]
             # 把用户上传的头像文件保存到服务器磁盘
-            path = user_id+'.'+file['filename'].split('.')[-1]
+            path = user_id + '.' + file['filename'].split('.')[-1]
             writer = open('statics/images/{}'.format(path), 'wb')
             writer.write(file['body'])
             writer.close()
@@ -331,22 +374,22 @@ class CommentsHandler(BaseHandler):
     @islogin_wj
     @gen.coroutine
     def post(self, *args, **kwargs):
-            user_id = self.session['user_id']
-            blog_id = self.get_body_argument('blog_id')
-            content = self.get_body_argument('content')
-            success = self.application.dbutil.addCommenttoBlog(
-                user_id=user_id, blog_id=blog_id, content=content)
-            if success:
-                commentsHtml = ''
-                comments = self.application.dbutil.findComments(
-                    blog_id=blog_id)
-                commentmodule = CommentModule(self)
-                for comment in comments:
-                    commentsHtml += commentmodule.render(**comment).decode()
-                self.write({'islogin': True,
-                            'success': True, 'commentsHtml': commentsHtml})
-            else:
-                self.write({'islogin': True, 'success': False})
+        user_id = self.session['user_id']
+        blog_id = self.get_body_argument('blog_id')
+        content = self.get_body_argument('content')
+        success = self.application.dbutil.addCommenttoBlog(
+            user_id=user_id, blog_id=blog_id, content=content)
+        if success:
+            commentsHtml = ''
+            comments = self.application.dbutil.findComments(
+                blog_id=blog_id)
+            commentmodule = CommentModule(self)
+            for comment in comments:
+                commentsHtml += commentmodule.render(**comment).decode()
+            self.write({'islogin': True,
+                        'success': True, 'commentsHtml': commentsHtml})
+        else:
+            self.write({'islogin': True, 'success': False})
 
 
 class ComplainHandler(BaseHandler):

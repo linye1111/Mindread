@@ -9,6 +9,10 @@ import re
 import json
 import pymysql
 from configuration.mysettings import settings
+import gevent
+import threading
+
+
 logger = logging.getLogger("crawlLog")
 
 formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
@@ -20,14 +24,15 @@ file_handler.setFormatter(formatter)
 logger.setLevel(logging.INFO)
 dbsetting = settings['dbsetting']
 conection = pymysql.connect(host=dbsetting.get('host', '127.0.0.1'),
-                                    port=dbsetting.get('port', 3306),
-                                    user=dbsetting.get('user', 'root'),
-                                    password=dbsetting.get('password', '123456'),
-                                    database=dbsetting.get(
-                                        'database', 'mindreaddb'),
-                                    charset=dbsetting.get('charset', 'utf8'))
+                            port=dbsetting.get('port', 3306),
+                            user=dbsetting.get('user', 'root'),
+                            password=dbsetting.get('password', '123456'),
+                            database=dbsetting.get(
+    'database', 'mindreaddb'),
+    charset=dbsetting.get('charset', 'utf8'))
 if conection:
     cursor = conection.cursor()
+
 
 def downloadHtml(url, headers=[], proxy={},
                  timeout=None,
@@ -59,7 +64,7 @@ def downloadHtml(url, headers=[], proxy={},
                                     proxy,
                                     timeout,
                                     decodeInfo,
-                                    num_retries-1)
+                                    num_retries - 1)
     return html
 
 
@@ -71,9 +76,9 @@ headers = [("User-Agent", "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/
 
 
 def saveImg(url, filename):
-    #把图片下载到本地
+    # 把图片下载到本地
     data = request.urlopen(url).read()
-    with open('statics/images/'+filename, "wb") as f:
+    with open('statics/images/' + filename, "wb") as f:
         f.write(data)
 
 
@@ -83,6 +88,10 @@ def formatbookinfo(html):
     infos = re.findall(pattern, html)
     print(infos)
     pattern = re.compile(r'<div class="intro">\s*<p>([\w\W]*?)</p></div>')
+    if re.findall(pattern, html):
+        brief = re.findall(pattern, html)[0]
+    else:
+        brief = None
     book = dict(
         title=None,
         author=None,
@@ -93,7 +102,7 @@ def formatbookinfo(html):
         date=None,
         price=None,
         ISBN=None,
-        brief=re.findall(pattern, html)[0],
+        brief=brief,
         img=None)
     pattern = re.compile(r'">([\w\W]*?)</a>')
     for info in infos:
@@ -120,12 +129,13 @@ def formatbookinfo(html):
     pattern = re.compile(r'<a class="nbg"\s* href="([\w\W]*?)\s*"')
     img_url = re.findall(pattern, html)[0]
     if book['ISBN']:
-        book['img'] = book['ISBN']+'.'+img_url.split('.')[-1]
+        book['img'] = book['ISBN'] + '.' + img_url.split('.')[-1]
         saveImg(img_url, book['img'])
 
     pattern = re.compile('/tag/([\w\W]*?)"')
     tags = re.findall(pattern, html)
     return book, tags
+
 
 def insertBook(book):
     sql = 'insert into tb_book(book_title, book_author, book_press, ' \
@@ -148,6 +158,7 @@ def bookExistbyTitle(title):
     cursor.execute(sql, params)
     result = cursor.fetchone()[0]
     return result
+
 
 def insertTag(tag, ISBN):
     sql = 'select count(*) from tb_tag where tag_name = %s'
@@ -175,38 +186,40 @@ def insertTag(tag, ISBN):
         print('错误信息', e)
 
 
+lock = threading.Lock()
 
-def addbook(url, title, lock):
+
+def addbook(url, title):
     logger.addHandler(file_handler)
     html = downloadHtml(url, headers=headers)
     if html:
         book, tags = formatbookinfo(html)
-        logger.info('Add Book '+str(book)+'\nand Add Tags '+str(tags))
-        lock.acquire()
+        logger.info('Add Book ' + str(book) + '\nand Add Tags ' + str(tags))
         book['title'] = title
-        insertBook(book)
-        lock.release()
-        for tag in tags:
-            lock.acquire()
-            insertTag(tag, book['ISBN'])
-            lock.release()
+        with lock:
+            insertBook(book)
+            for tag in tags:
+                insertTag(tag, book['ISBN'])
     else:
         logger.error("downloadHtml fail")
     logger.removeHandler(file_handler)
 
+
 def crawlbyWord(q):
     while True:
         word = q.get()
-        url = 'https://book.douban.com/j/subject_suggest?q=' + parse.quote(word)
+        url = 'https://book.douban.com/j/subject_suggest?q=' + \
+            parse.quote(word)
         html = downloadHtml(url, headers=headers)
         if html:
             booklist = json.loads(html)
-            pool = multiprocessing.Pool(6)
-            lock = multiprocessing.Manager().Lock()
+            jobs = []
             for book in booklist:
                 if not bookExistbyTitle(book['title']):
-                    pool.apply_async(addbook, (book['url'], book['title'], lock))
-            pool.close()
-            pool.join()
+                    job = gevent.spawn(addbook, book['url'], book['title'])
+                    # addbook(book['url'], book['title'])
+                    jobs.append(job)
+            if jobs:
+                gevent.joinall(jobs)
         else:
             print('downloadHtml fail')
